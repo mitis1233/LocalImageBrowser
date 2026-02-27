@@ -11,6 +11,7 @@
             --primary-color: #3498db;
             --card-bg: #1e1e1e;
             --columns: 5;
+            --zoom-scale: 1; 
         }
 
         body {
@@ -18,13 +19,13 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 120px 20px 20px 20px; 
+            padding: 70px 20px 20px 20px; 
         }
 
         /* 頂部控制列 */
         .header {
             text-align: center;
-            padding: 10px 20px;
+            padding: 8px 15px; 
             background-color: rgba(30, 30, 30, 0.1); 
             backdrop-filter: blur(8px);
             border-bottom: 1px solid rgba(255,255,255,0.1);
@@ -38,14 +39,13 @@
         }
 
         .header.hidden { transform: translateY(-100%); }
-        .header h1 { margin: 0 0 10px 0; font-size: 20px; }
         
         .controls {
             display: flex;
             flex-wrap: wrap;
             align-items: center;
             justify-content: center;
-            gap: 15px;
+            gap: 10px; 
         }
 
         input[type="file"] { display: none; }
@@ -62,6 +62,12 @@
         }
 
         .btn:hover { background: var(--primary-color); color: white; }
+        .btn.active {
+            background: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            box-shadow: 0 0 10px rgba(52, 152, 219, 0.5);
+        }
 
         .slider-container { display: flex; align-items: center; gap: 8px; font-size: 14px; }
         input[type="range"] { cursor: pointer; }
@@ -71,10 +77,11 @@
             border: 1px solid var(--primary-color); border-radius: 4px;
             padding: 4px; text-align: center; font-weight: bold;
         }
+        
+        .zoom-input { width: 60px; }
 
-        #status { margin-top: 5px; font-size: 12px; color: #aaa; }
+        #status { margin-top: 4px; font-size: 12px; color: #aaa; }
 
-        /* 列表/網格顯示區 */
         .gallery {
             display: grid;
             grid-template-columns: repeat(var(--columns), 1fr);
@@ -84,29 +91,40 @@
         .image-card {
             background-color: var(--card-bg); border-radius: 8px;
             overflow: hidden; cursor: pointer; aspect-ratio: 1 / 1;
+            display: flex; flex-direction: column;
         }
 
-        .image-card img { width: 100%; height: 100%; object-fit: cover; }
+        .image-card img { width: 100%; height: 100%; object-fit: cover; flex-grow: 1; }
 
-        .gallery.single-view .image-card { aspect-ratio: auto; height: 80vh; }
-        .gallery.single-view .image-card img { object-fit: contain; }
+        .gallery.single-view .image-card img {
+            transform: scale(var(--zoom-scale));
+            transition: transform 0.1s ease-out;
+            transform-origin: top center;
+        }
+        .gallery.single-view.fit-auto .image-card { aspect-ratio: auto; height: 85vh; width: 100%; }
+        .gallery.single-view.fit-auto .image-card img { object-fit: contain; }
+        .gallery.single-view.fit-height .image-card { aspect-ratio: auto; height: 100vh; width: 100%; }
+        .gallery.single-view.fit-height .image-card img { object-fit: contain; }
+        .gallery.single-view.fit-width .image-card { aspect-ratio: auto; height: auto; width: 100%; }
+        .gallery.single-view.fit-width .image-card img { object-fit: cover; height: auto; }
 
         .image-info {
             padding: 5px; font-size: 12px; white-space: nowrap;
             overflow: hidden; text-overflow: ellipsis; background: #111; text-align: center;
         }
         
-        /* 隱藏名稱功能 */
-        .hide-names .image-info { display: none; }
+        .hide-ui-mode .image-info { display: none !important; }
 
-        /* 單一檢視 (Lightbox) */
         .lightbox {
             display: none; position: fixed; z-index: 1000; left: 0; top: 0;
             width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.95);
             align-items: center; justify-content: center; overflow: hidden;
-            /* 修正連點反藍 BUG：禁止選取 */
-            user-select: none;
-            -webkit-user-select: none; /* 支援部分核心的瀏覽器 */
+            user-select: none; -webkit-user-select: none; 
+        }
+
+        .lightbox.hide-ui-mode .lightbox-info,
+        .lightbox.hide-ui-mode .lightbox-toolbar {
+            display: none !important;
         }
 
         .lightbox-img-container {
@@ -115,57 +133,54 @@
             overflow: hidden; 
         }
 
-        /* 滿版模式切換 CSS */
-        .lightbox img.fit-auto { max-width: 95%; max-height: 95vh; object-fit: contain; }
-        .lightbox img.fit-height { height: 100vh; width: auto; max-width: none; max-height: none; }
-        .lightbox img.fit-width { width: 100vw; height: auto; max-width: none; max-height: none; }
-
         .lightbox img {
+            max-width: none;
+            max-height: none;
+            width: auto;
+            height: auto;
+            flex-shrink: 0;
             cursor: grab;
-            transition: transform 0.1s ease-out;
+            opacity: 1;
+            transition: transform 0.08s ease-out, opacity 0.2s ease-in-out;
             transform-origin: center center;
         }
         .lightbox img:active { cursor: grabbing; transition: none; }
 
-        /* 圖片標題 - 90% 透明 */
+        /* 左上角圖片標題 (改為可點擊連結的樣式) */
         .lightbox-info {
             position: absolute; top: 20px; left: 20px; color: rgba(255, 255, 255, 0.6);
             background: rgba(0, 0, 0, 0.1); 
             padding: 8px 15px; border-radius: 10px; font-size: 14px;
-            pointer-events: none; z-index: 1002; text-shadow: 1px 1px 2px black; 
+            z-index: 1002; text-shadow: 1px 1px 2px black; 
+            text-decoration: none; /* 移除超連結底線 */
+            cursor: pointer;
+            transition: all 0.3s;
+            /* 允許指標事件，讓它可以被點擊 */
+            pointer-events: auto; 
+        }
+        
+        /* 滑鼠移過去時的特效 */
+        .lightbox-info:hover {
+            background: rgba(0, 0, 0, 0.8);
+            color: var(--primary-color);
+            text-decoration: underline;
         }
 
-        /* 右上角滿版控制列 - 95% 透明 & 匹配標題風格 */
         .lightbox-toolbar {
-            position: absolute; top: 20px; right: 80px; z-index: 1003;
+            position: absolute; top: 20px; right: 100px; z-index: 1003;
             display: flex; gap: 8px;
         }
 
         .tool-btn {
-            background: rgba(0, 0, 0, 0.05);
-            color: rgba(255, 255, 255, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 8px 15px; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            font-size: 14px; 
-            transition: all 0.3s;
+            background: rgba(0, 0, 0, 0.05); color: rgba(255, 255, 255, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.05); padding: 8px 15px; 
+            border-radius: 10px; cursor: pointer; font-size: 14px; transition: all 0.3s;
             text-shadow: 1px 1px 2px black;
         }
         
-        .tool-btn:hover { 
-            background: rgba(0, 0, 0, 0.6); 
-            color: white; 
-            border-color: rgba(255, 255, 255, 0.5); 
-        }
-        
-        .tool-btn.active { 
-            background: rgba(52, 152, 219, 0.1); 
-            color: var(--primary-color); 
-            border-color: rgba(52, 152, 219, 0.3); 
-        }
+        .tool-btn:hover { background: rgba(0, 0, 0, 0.6); color: white; border-color: rgba(255, 255, 255, 0.5); }
+        .tool-btn.active { background: rgba(52, 152, 219, 0.1); color: var(--primary-color); border-color: rgba(52, 152, 219, 0.3); }
 
-        /* 滿版巨大左右按鈕 (99%透明) */
         .nav-btn {
             position: absolute; top: 0; height: 100%; width: 25%;
             background: rgba(255, 255, 255, 0.01); color: rgba(255, 255, 255, 0.01);
@@ -176,13 +191,14 @@
         #prevBtn { left: 0; justify-content: flex-start; padding-left: 3%; }
         #nextBtn { right: 0; justify-content: flex-end; padding-right: 3%; }
         
-        /* 關閉按鈕 X */
         #closeBtn {
-            position: absolute; top: 15px; right: 20px; font-size: 40px; color: white;
-            cursor: pointer; background: none; border: none; z-index: 1002;
-            opacity: 0.2; transition: 0.3s; text-shadow: 1px 1px 2px black;
+            position: absolute; top: 0; right: 0; width: 100px; height: 100px; 
+            font-size: 45px; color: rgba(255, 255, 255, 0.01); cursor: pointer; 
+            background: none; border: none; z-index: 1004; display: flex;
+            align-items: flex-start; justify-content: flex-end; padding: 15px 25px 0 0; 
+            transition: color 0.3s, text-shadow 0.3s;
         }
-        #closeBtn:hover { opacity: 1; }
+        #closeBtn:hover { color: rgba(255, 255, 255, 0.6); text-shadow: 1px 1px 3px black; }
         
         #loadingSentinel { text-align: center; padding: 20px; color: #888; font-weight: bold; }
     </style>
@@ -190,26 +206,37 @@
 <body>
 
     <div class="header" id="header">
-        <h1>本地圖片瀏覽器</h1>
         <div class="controls">
             <label for="folderInput" class="btn">📁 選擇資料夾</label>
             <input type="file" id="folderInput" webkitdirectory multiple />
             
             <div class="slider-container">
-                <span>顯示欄數：</span>
+                <span>排數：</span>
                 <input type="range" id="columnSlider" min="1" max="10" value="5">
-                <input type="number" id="columnInput" class="column-input" value="5" min="1"> 排
+                <input type="number" id="columnInput" class="column-input" value="5" min="1">
             </div>
 
-            <button id="toggleNameBtn" class="btn">👁️ 顯示名稱</button>
+            <button id="toggleUIBtn" class="btn">👁️ 顯示介面</button>
+
+            <span style="color: #666;">|</span>
+            <button class="btn active" id="mainFitAuto">自動滿版</button>
+            <button class="btn" id="mainFitHeight">高度滿版</button>
+            <button class="btn" id="mainFitWidth">寬度滿版</button>
+            
+            <span style="color: #666;">|</span>
+            <div class="slider-container">
+                <span>縮放：</span>
+                <input type="range" id="zoomSlider" min="1" max="150" value="100">
+                <input type="number" id="zoomInput" class="column-input zoom-input" value="100" min="1"> %
+            </div>
         </div>
         <div id="status">尚未選擇資料夾</div>
     </div>
 
-    <div class="gallery hide-names" id="gallery"></div>
+    <div class="gallery hide-ui-mode fit-auto" id="gallery"></div>
     <div id="loadingSentinel">往下捲動載入更多...</div>
 
-    <div class="lightbox" id="lightbox">
+    <div class="lightbox hide-ui-mode" id="lightbox">
         <button id="closeBtn">&times;</button>
         
         <div class="lightbox-toolbar">
@@ -218,10 +245,10 @@
             <button class="tool-btn" id="btnFitWidth">寬度滿版</button>
         </div>
 
-        <div class="lightbox-info" id="lightboxInfo"></div>
+        <a href="#" target="_blank" class="lightbox-info" id="lightboxInfo" title="點擊在新分頁開啟原圖"></a>
         
         <div class="lightbox-img-container">
-            <img id="lightboxImg" class="fit-auto" src="" alt="大圖" draggable="false">
+            <img id="lightboxImg" src="" alt="大圖" draggable="false">
         </div>
         
         <button class="nav-btn" id="prevBtn">&#10094;</button>
@@ -229,7 +256,6 @@
     </div>
 
     <script>
-        // ================= 滾動隱藏 Header =================
         let lastScrollTop = 0;
         const header = document.getElementById('header');
 
@@ -240,12 +266,19 @@
             lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
         });
 
-        // ================= 全域變數 =================
         let allImages = [];
         let renderedCount = 0;
         const CHUNK_SIZE = 50;
         let currentIndex = 0;
-        let namesVisible = false;
+        let uiVisible = false;
+        
+        let mainScale = 1;
+        let mainFitMode = 'auto'; 
+
+        let lbScale = 1;
+        let lbTranslateX = 0;
+        let lbTranslateY = 0;
+        let lbFitMode = 'auto'; 
 
         const folderInput = document.getElementById('folderInput');
         const status = document.getElementById('status');
@@ -258,38 +291,250 @@
 
         const columnSlider = document.getElementById('columnSlider');
         const columnInput = document.getElementById('columnInput');
-        const toggleNameBtn = document.getElementById('toggleNameBtn');
+        const toggleUIBtn = document.getElementById('toggleUIBtn');
+        
+        const zoomSlider = document.getElementById('zoomSlider');
+        const zoomInput = document.getElementById('zoomInput');
 
-        // ================= 滿版按鈕控制 =================
+        const mainFitAuto = document.getElementById('mainFitAuto');
+        const mainFitHeight = document.getElementById('mainFitHeight');
+        const mainFitWidth = document.getElementById('mainFitWidth');
+
         const btnFitAuto = document.getElementById('btnFitAuto');
         const btnFitHeight = document.getElementById('btnFitHeight');
         const btnFitWidth = document.getElementById('btnFitWidth');
 
-        function setFitMode(mode) {
-            resetZoom(); 
+        toggleUIBtn.addEventListener('click', () => {
+            uiVisible = !uiVisible;
+            if (uiVisible) {
+                gallery.classList.remove('hide-ui-mode');
+                lightbox.classList.remove('hide-ui-mode');
+                toggleUIBtn.innerText = '👁️ 隱藏介面';
+            } else {
+                gallery.classList.add('hide-ui-mode');
+                lightbox.classList.add('hide-ui-mode');
+                toggleUIBtn.innerText = '👁️ 顯示介面';
+            }
+        });
+
+        function updateMainTransform() {
+            document.documentElement.style.setProperty('--zoom-scale', mainScale);
+            const scalePct = Math.round(mainScale * 100);
+            zoomSlider.value = scalePct <= 150 ? scalePct : 150;
+            zoomInput.value = scalePct;
+        }
+
+        function setMainFitMode(mode) {
+            mainFitMode = mode;
+            gallery.classList.remove('fit-auto', 'fit-height', 'fit-width');
+            mainFitAuto.classList.remove('active');
+            mainFitHeight.classList.remove('active');
+            mainFitWidth.classList.remove('active');
+
+            if (mode !== 'custom') {
+                gallery.classList.add('fit-' + mode);
+                if (mode === 'auto') mainFitAuto.classList.add('active');
+                if (mode === 'height') mainFitHeight.classList.add('active');
+                if (mode === 'width') mainFitWidth.classList.add('active');
+                mainScale = 1; 
+            }
+            updateMainTransform();
+        }
+
+        mainFitAuto.addEventListener('click', () => setMainFitMode('auto'));
+        mainFitHeight.addEventListener('click', () => setMainFitMode('height'));
+        mainFitWidth.addEventListener('click', () => setMainFitMode('width'));
+
+        function calcLbFitScale(mode) {
+            let imgW = lightboxImg.naturalWidth || 1;
+            let imgH = lightboxImg.naturalHeight || 1;
+            let winW = window.innerWidth;
+            let winH = window.innerHeight;
             
-            lightboxImg.classList.remove('fit-auto', 'fit-height', 'fit-width');
+            if (mode === 'auto') {
+                return Math.min((winW * 0.95) / imgW, (winH * 0.95) / imgH);
+            } else if (mode === 'height') {
+                return winH / imgH;
+            } else if (mode === 'width') {
+                return winW / imgW;
+            }
+            return 1;
+        }
+
+        function updateLbTransform() {
+            lightboxImg.style.transform = `translate(${lbTranslateX}px, ${lbTranslateY}px) scale(${lbScale})`;
+            const scalePct = Math.round(lbScale * 100);
+            zoomSlider.value = scalePct <= 150 ? scalePct : 150;
+            zoomInput.value = scalePct;
+        }
+
+        function setLbFitMode(mode) {
+            lbFitMode = mode;
+            lbTranslateX = 0; lbTranslateY = 0;
+
             btnFitAuto.classList.remove('active');
             btnFitHeight.classList.remove('active');
             btnFitWidth.classList.remove('active');
 
-            if (mode === 'auto') {
-                lightboxImg.classList.add('fit-auto');
-                btnFitAuto.classList.add('active');
-            } else if (mode === 'height') {
-                lightboxImg.classList.add('fit-height');
-                btnFitHeight.classList.add('active');
-            } else if (mode === 'width') {
-                lightboxImg.classList.add('fit-width');
-                btnFitWidth.classList.add('active');
+            if (mode !== 'custom') {
+                lbScale = calcLbFitScale(mode);
+                if (mode === 'auto') btnFitAuto.classList.add('active');
+                if (mode === 'height') btnFitHeight.classList.add('active');
+                if (mode === 'width') btnFitWidth.classList.add('active');
+            }
+            updateLbTransform();
+        }
+
+        btnFitAuto.addEventListener('click', (e) => { e.stopPropagation(); setLbFitMode('auto'); });
+        btnFitHeight.addEventListener('click', (e) => { e.stopPropagation(); setLbFitMode('height'); });
+        btnFitWidth.addEventListener('click', (e) => { e.stopPropagation(); setLbFitMode('width'); });
+
+        window.addEventListener('resize', () => {
+            if (lightbox.style.display === 'flex' && lbFitMode !== 'custom') {
+                setLbFitMode(lbFitMode);
+            }
+        });
+
+        function applyZoomFromInput(val) {
+            if (lightbox.style.display === 'flex') {
+                lbFitMode = 'custom';
+                btnFitAuto.classList.remove('active');
+                btnFitHeight.classList.remove('active');
+                btnFitWidth.classList.remove('active');
+                lbScale = val / 100;
+                updateLbTransform();
+            } else {
+                setMainFitMode('custom');
+                mainScale = val / 100;
+                updateMainTransform();
             }
         }
 
-        btnFitAuto.addEventListener('click', (e) => { e.stopPropagation(); setFitMode('auto'); });
-        btnFitHeight.addEventListener('click', (e) => { e.stopPropagation(); setFitMode('height'); });
-        btnFitWidth.addEventListener('click', (e) => { e.stopPropagation(); setFitMode('width'); });
+        zoomSlider.addEventListener('input', (e) => {
+            zoomInput.value = e.target.value;
+            applyZoomFromInput(e.target.value);
+        });
 
-        // ================= 欄位與名稱控制 =================
+        zoomInput.addEventListener('input', (e) => {
+            let val = parseInt(e.target.value);
+            if (isNaN(val) || val < 1) val = 1; 
+            zoomSlider.value = val <= 150 ? val : 150;
+            applyZoomFromInput(val);
+        });
+
+        // ================= 神級滑鼠滾輪縮放邏輯 =================
+        lightboxImg.addEventListener('wheel', (e) => {
+            e.preventDefault(); 
+            if (lbFitMode !== 'custom') setLbFitMode('custom');
+            
+            const zoomFactor = 1.15;
+            const oldScale = lbScale;
+            
+            if (e.deltaY < 0) {
+                lbScale *= zoomFactor; 
+            } else {
+                lbScale /= zoomFactor; 
+            }
+            
+            lbScale = Math.max(0.001, Math.min(lbScale, 50)); 
+            
+            const cx = window.innerWidth / 2;
+            const cy = window.innerHeight / 2;
+            
+            const offsetX = e.clientX - cx;
+            const offsetY = e.clientY - cy;
+
+            const ratio = lbScale / oldScale;
+            
+            lbTranslateX = offsetX - (offsetX - lbTranslateX) * ratio;
+            lbTranslateY = offsetY - (offsetY - lbTranslateY) * ratio;
+
+            updateLbTransform();
+        });
+
+        let isDragging = false; let startX, startY;
+        lightboxImg.addEventListener('mousedown', (e) => {
+            e.preventDefault(); isDragging = true;
+            startX = e.clientX - lbTranslateX; startY = e.clientY - lbTranslateY;
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            lbTranslateX = e.clientX - startX; lbTranslateY = e.clientY - startY;
+            updateLbTransform();
+        });
+
+        window.addEventListener('mouseup', () => { isDragging = false; });
+        window.addEventListener('mouseleave', () => { isDragging = false; });
+
+        // ================= ★ 標題連結更新邏輯 ★ =================
+        function updateLightboxInfo() {
+            const file = allImages[currentIndex];
+            const imgUrl = URL.createObjectURL(file); // 產生圖片的暫存網址
+            
+            lightboxImg.src = imgUrl;
+            
+            // 將左上角的文字更新
+            lightboxInfo.innerText = `${currentIndex + 1} / ${allImages.length} - ${file.name}`;
+            
+            // 將 a 標籤的超連結設定為這張圖片的網址
+            lightboxInfo.href = imgUrl; 
+        }
+
+        function openLightbox(index) {
+            currentIndex = index;
+            lightboxImg.style.opacity = '0'; 
+            
+            lightboxImg.onload = () => {
+                let modeToApply = mainFitMode === 'custom' ? 'auto' : mainFitMode;
+                setLbFitMode(modeToApply);
+                lightboxImg.style.opacity = '1';
+                lightboxImg.onload = null;
+            };
+            
+            updateLightboxInfo(); // 呼叫更新文字與超連結
+            lightbox.style.display = 'flex';
+        }
+
+        function navigateLightbox() {
+            lightboxImg.style.opacity = '0';
+            
+            lightboxImg.onload = () => {
+                let modeToApply = lbFitMode === 'custom' ? 'auto' : lbFitMode;
+                setLbFitMode(modeToApply);
+                lightboxImg.style.opacity = '1';
+                lightboxImg.onload = null;
+            };
+            
+            updateLightboxInfo(); // 呼叫更新文字與超連結
+        }
+
+        document.getElementById('closeBtn').addEventListener('click', () => {
+            lightbox.style.display = 'none'; 
+            lightboxImg.src = ''; 
+            updateMainTransform(); 
+        });
+
+        document.getElementById('prevBtn').addEventListener('click', (e) => {
+            e.stopPropagation(); 
+            currentIndex = (currentIndex > 0) ? currentIndex - 1 : allImages.length - 1;
+            navigateLightbox();
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            currentIndex = (currentIndex < allImages.length - 1) ? currentIndex + 1 : 0;
+            navigateLightbox();
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (lightbox.style.display === 'flex') {
+                if (e.key === 'ArrowLeft') document.getElementById('prevBtn').click();
+                if (e.key === 'ArrowRight') document.getElementById('nextBtn').click();
+                if (e.key === 'Escape') document.getElementById('closeBtn').click();
+            }
+        });
+
         function updateColumns(cols) {
             document.documentElement.style.setProperty('--columns', cols);
             if(cols == 1) gallery.classList.add('single-view');
@@ -307,18 +552,6 @@
             updateColumns(cols);
         });
 
-        toggleNameBtn.addEventListener('click', () => {
-            namesVisible = !namesVisible;
-            if(namesVisible) {
-                gallery.classList.remove('hide-names');
-                toggleNameBtn.innerText = '👁️ 隱藏名稱';
-            } else {
-                gallery.classList.add('hide-names');
-                toggleNameBtn.innerText = '👁️ 顯示名稱';
-            }
-        });
-
-        // ================= 讀取檔案 =================
         folderInput.addEventListener('change', function(e) {
             const files = e.target.files;
             allImages = []; renderedCount = 0; gallery.innerHTML = ''; 
@@ -329,10 +562,10 @@
             }
 
             if (allImages.length === 0) {
-                status.innerText = '找不到圖片。'; loadingSentinel.style.display = 'none'; return;
+                status.innerText = '找不到圖片'; loadingSentinel.style.display = 'none'; return;
             }
 
-            status.innerText = `共找到 ${allImages.length} 張圖片。`;
+            status.innerText = `共找到 ${allImages.length} 張圖片`;
             loadingSentinel.style.display = 'block';
             loadMoreImages();
         });
@@ -365,78 +598,6 @@
             if (entries[0].isIntersecting && allImages.length > 0) loadMoreImages();
         }, { rootMargin: '500px' });
         observer.observe(loadingSentinel);
-
-        // ================= 燈箱縮放與拖曳邏輯 =================
-        let scale = 1; let isDragging = false; let startX, startY, translateX = 0, translateY = 0;
-
-        function resetZoom() {
-            scale = 1; translateX = 0; translateY = 0;
-            updateTransform();
-        }
-
-        function updateTransform() {
-            lightboxImg.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
-        }
-
-        lightboxImg.addEventListener('wheel', (e) => {
-            e.preventDefault(); 
-            const zoomSpeed = 0.1;
-            if (e.deltaY < 0) scale += zoomSpeed; else scale -= zoomSpeed; 
-            scale = Math.max(0.2, Math.min(scale, 10)); 
-            updateTransform();
-        });
-
-        lightboxImg.addEventListener('mousedown', (e) => {
-            e.preventDefault(); isDragging = true;
-            startX = e.clientX - translateX; startY = e.clientY - translateY;
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (!isDragging) return;
-            translateX = e.clientX - startX; translateY = e.clientY - startY;
-            updateTransform();
-        });
-
-        window.addEventListener('mouseup', () => { isDragging = false; });
-        window.addEventListener('mouseleave', () => { isDragging = false; });
-
-        // ================= 燈箱切換操作 =================
-        function openLightbox(index) {
-            currentIndex = index;
-            resetZoom();
-            updateLightboxInfo();
-            lightbox.style.display = 'flex';
-        }
-
-        function updateLightboxInfo() {
-            const file = allImages[currentIndex];
-            lightboxImg.src = URL.createObjectURL(file);
-            lightboxInfo.innerText = `${currentIndex + 1} / ${allImages.length} - ${file.name}`;
-        }
-
-        document.getElementById('closeBtn').addEventListener('click', () => {
-            lightbox.style.display = 'none'; lightboxImg.src = ''; 
-        });
-
-        document.getElementById('prevBtn').addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            currentIndex = (currentIndex > 0) ? currentIndex - 1 : allImages.length - 1;
-            resetZoom(); updateLightboxInfo();
-        });
-
-        document.getElementById('nextBtn').addEventListener('click', (e) => {
-            e.stopPropagation();
-            currentIndex = (currentIndex < allImages.length - 1) ? currentIndex + 1 : 0;
-            resetZoom(); updateLightboxInfo();
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (lightbox.style.display === 'flex') {
-                if (e.key === 'ArrowLeft') document.getElementById('prevBtn').click();
-                if (e.key === 'ArrowRight') document.getElementById('nextBtn').click();
-                if (e.key === 'Escape') document.getElementById('closeBtn').click();
-            }
-        });
     </script>
 </body>
 </html>
